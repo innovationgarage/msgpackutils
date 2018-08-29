@@ -1,0 +1,13 @@
+#! /usr/bin/env python
+
+import msgpack
+import sys
+
+ln = None
+if sys.argv[1:]:
+    ln = int(sys.argv[1])
+
+unpacker = msgpack.Unpacker(sys.stdin, raw=False)
+for idx, unpacked in enumerate(unpacker):
+    if ln is not None and idx >= ln: break
+    print(unpacked)

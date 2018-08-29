@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+
+import msgpack
+import sys
+
+args = {}
+files = []
+for arg in sys.argv[1:]:
+    if arg.startswith("--"):
+        arg = arg[2:]
+        if '=' in arg:
+            arg, value = arg.split("=", 1)
+            args[arg] = value
+        else:
+            args[arg] = True
+    else:
+        files.append(arg)
+
+if "help" in args:
+    print("""Usage: msgpacksplit FILENAME.msg LINES < INFILE.msgpack
+""")
+    sys.exit(0)
+
+file_name, split = files
+file_base, file_ext = file_name.rsplit(".", 1)
+split = int(split)
+
+lines_in_current_file = 0
+current_file = None
+current_file_idx = 0
+def get_file():
+    global lines_in_current_file
+    global current_file
+    global current_file_idx
+    
+    if file_name is None:
+        return sys.stdout
+    if split is None:
+        if current_file is None:
+            current_file = open(file_name, "w")
+        return current_file
+    else:
+        if current_file is None or lines_in_current_file >= split:
+            if current_file:
+                current_file.close()
+            current_file = open("%s-%s.%s" % (file_base, current_file_idx, file_ext), "w")
+            current_file_idx += 1
+            lines_in_current_file = 1
+        else:
+            lines_in_current_file += 1
+        return current_file
+
+for msg in msgpack.Unpacker(sys.stdin, raw=False):
+    msgpack.pack(msg, get_file())
+
+current_file.close()
